@@ -8,9 +8,15 @@ import FormField from "../shared/FormField";
 import PasswordField from "../shared/PasswordField";
 import Button from "../shared/Button";
 import { signupSchema } from "@/lib/validations/auth";
+import httpRequest from "@/lib/http-request/axios-http-request";
+
+import { useRouter } from "next/navigation";
 
 export default function Signup() {
   const [errors, setErrors] = useState<FieldErrors>({});
+  const [loading, setLoading] = useState(false);
+  const router = useRouter();
+  const [serverError, setServerError] = useState("");
 
   const FIELDS = [
     {
@@ -28,8 +34,8 @@ export default function Signup() {
       autoComplete: "email",
     },
     {
-      name: "phone",
-      label: "Phone",
+      name: "mobile",
+      label: "Mobile",
       type: "tel",
       placeholder: "9999999999",
       autoComplete: "tel",
@@ -37,19 +43,37 @@ export default function Signup() {
     },
   ] as const;
 
-  const handleSubmit = (e: ChangeEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
+  const handleSubmit = async (e: ChangeEvent<HTMLFormElement>) => {
+    try {
+      e.preventDefault();
+      setLoading(true);
+      setServerError("");
+      const formData = new FormData(e.currentTarget);
 
-    const { data, errors } = parseForm(signupSchema, formData);
-    if (errors) return setErrors(errors);
+      const { data, errors } = parseForm(signupSchema, formData);
+      if (errors) return setErrors(errors);
+      console.log("formData", data);
 
-    setErrors({});
-    console.log(data); // call your API / server action here
+      setErrors({});
+      await httpRequest.post("/auth/signup", data);
+
+      setLoading(false);
+      router.replace("/auth/login");
+    } catch (error: any) {
+      const message =
+        error?.response?.data?.message ||
+        error?.message ||
+        "Something went wrong. Please try again.";
+
+      setServerError(message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const clearError = (e: SyntheticEvent<HTMLFormElement>) => {
     const { name } = e.target as HTMLInputElement;
+    setServerError("");
     if (errors[name]) setErrors((prev) => ({ ...prev, [name]: undefined }));
   };
 
@@ -85,8 +109,18 @@ export default function Signup() {
           autoComplete="new-password"
           error={errors.password}
         />
-
-        <Button type="submit">Create account</Button>
+        {serverError && (
+          <div
+            role="alert"
+            className="flex items-center gap-2 rounded-xl border border-red-200
+    bg-red-50 px-4 py-3 text-sm font-medium text-red-600"
+          >
+            {serverError}
+          </div>
+        )}
+        <Button disabled={loading} type="submit">
+          {loading ? "Registering Account" : "Create account"}
+        </Button>
       </form>
     </AuthCard>
   );
