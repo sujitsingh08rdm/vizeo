@@ -8,6 +8,8 @@ import { FieldErrors, parseForm } from "@/lib/validations/parseForm";
 import Button from "../shared/Button";
 import PasswordField from "../shared/PasswordField";
 import { loginSchema } from "@/lib/validations/auth";
+import httpRequest from "@/lib/http-request/axios-http-request";
+import { useRouter } from "next/navigation";
 
 const FIELDS = [
   {
@@ -17,34 +19,49 @@ const FIELDS = [
     placeholder: "you@example.com",
     autoComplete: "email",
   },
-  {
-    name: "phone",
-    label: "Phone",
-    type: "tel",
-    placeholder: "9999999999",
-    autoComplete: "tel",
-    inputMode: "numeric",
-  },
 ] as const;
 
 const Login = () => {
   const [errors, setErrors] = useState<FieldErrors>({});
+  const [loading, setLoading] = useState(false);
+  const [serverError, setServerError] = useState("");
 
-  const handleSubmit = (e: ChangeEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const { data, errors } = parseForm(loginSchema, formData);
+  const router = useRouter();
 
-    if (errors) {
-      return setErrors(errors);
+  const handleSubmit = async (e: ChangeEvent<HTMLFormElement>) => {
+    try {
+      e.preventDefault();
+      setLoading(true);
+      setServerError("");
+      const formData = new FormData(e.currentTarget);
+      const { data, errors } = parseForm(loginSchema, formData);
+
+      if (errors) {
+        return setErrors(errors);
+      }
+
+      setErrors({});
+
+      await httpRequest.post("/auth/login", data);
+
+      setLoading(false);
+      router.replace("/app");
+    } catch (error: any) {
+      const message =
+        error?.response?.data?.message ||
+        error?.message ||
+        "Something went wrong. Please try again.";
+
+      setServerError(message);
+    } finally {
+      setLoading(false);
     }
-
-    setErrors({});
-    console.log(data);
   };
 
   const clearError = (e: SyntheticEvent<HTMLFormElement>) => {
     const { name } = e.target as HTMLInputElement;
+    setServerError("");
+
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: undefined }));
     }
@@ -82,7 +99,18 @@ const Login = () => {
           autoComplete="new-password"
           error={errors.password}
         />
-        <Button type="submit">Login</Button>
+        {serverError && (
+          <div
+            role="alert"
+            className="flex items-center gap-2 rounded-xl border border-red-200
+    bg-red-50 px-4 py-3 text-sm font-medium text-red-600"
+          >
+            {serverError}
+          </div>
+        )}
+        <Button disabled={loading} type="submit">
+          {loading ? "Logging In..." : "Login"}
+        </Button>
       </form>
     </AuthCard>
   );
