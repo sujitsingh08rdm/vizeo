@@ -14,9 +14,10 @@ import {
 import Logo from "../shared/Logo";
 import Button from "../shared/Button";
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { usePathname } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { cn } from "cn";
+import { useAuth } from "@/context/auth-context";
 
 const APP_BASE = "/app";
 
@@ -50,6 +51,11 @@ const SIDEBAR_MENU = [
 
 const AppLayout = ({ children }: ChildrenInterface) => {
   const pathname = usePathname();
+  const router = useRouter();
+  const [showProfile, setShowProfile] = useState(false);
+
+  const profileRef = useRef<HTMLDivElement>(null);
+
   // md+  : collapsed = icons only, expanded = icons + labels
   const [collapsed, setCollapsed] = useState(false);
   // <md  : hidden by default, opens as an icon rail overlay
@@ -57,9 +63,36 @@ const AppLayout = ({ children }: ChildrenInterface) => {
   // <lg  : search shows as an icon, opens as a full-width bar
   const [searchOpen, setSearchOpen] = useState(false);
 
+  // use auth
+  const { user, logout, isAuthenticated, isLoading } = useAuth();
+  console.log(user);
+
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) router.replace("/auth/login");
+  }, [isLoading, isAuthenticated, router]);
+
   // Tablet (md to lg) starts with the icon rail, desktop starts expanded
   useEffect(() => {
     setCollapsed(!window.matchMedia("(min-width: 1024px)").matches);
+  }, []);
+
+  // Close profile dropdown
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        profileRef.current &&
+        !profileRef.current.contains(e.target as Node)
+      ) {
+        setShowProfile(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
   }, []);
 
   // closes the mobile rail on navigation
@@ -90,6 +123,8 @@ const AppLayout = ({ children }: ChildrenInterface) => {
       setMobileOpen((prev) => !prev);
     }
   };
+
+  if (isLoading || !isAuthenticated) return null; // or a spinner
 
   return (
     <div className="h-dvh flex flex-col overflow-hidden">
@@ -180,17 +215,33 @@ const AppLayout = ({ children }: ChildrenInterface) => {
               </Link>
             </Button>
           </div>
-          <button
-            type="button"
-            aria-label="Account"
-            className="cursor-pointer text-gray-700 hover:text-gray-900"
-          >
-            <User
-              width={42}
-              height={42}
-              className="bg-gray-200 rounded-full p-2"
-            />
-          </button>
+          <div className="relative" ref={profileRef}>
+            <button
+              onClick={() => setShowProfile((prev) => !prev)}
+              className="cursor-pointer px-4 py-2 bg-indigo-200 rounded-full hover:ring-2 hover:ring-indigo-400"
+            >
+              <label className="cursor-pointer text-xl font-bold text-indigo-800 capitalize">
+                {user?.fullname[0]}
+              </label>
+            </button>
+            {showProfile && (
+              <div className="w-25 sm:30 md:35 absolute p-2 mt-1 -right-1 border flex flex-col items-center justify-center bg-gray-100 rounded">
+                <Link
+                  href={"/app/settings"}
+                  className="text-lg mb-1 hover: font-semibold"
+                  onClick={() => setShowProfile(false)}
+                >
+                  {user?.fullname}
+                </Link>
+                <Button
+                  onClick={logout}
+                  className="px-4 py-2 bg-gray-200 text-gray-800 cursor-pointer hover:bg-gray-300 hover:text-gray-900 active:scale-95"
+                >
+                  Logout
+                </Button>
+              </div>
+            )}
+          </div>
         </div>
       </nav>
 

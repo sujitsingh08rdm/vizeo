@@ -3,19 +3,19 @@
 import { ReactNode } from "react";
 import Logo from "../shared/Logo";
 
-interface AuthCardPropsInterface {
+interface AuthLayoutPropsInterface {
   title: string;
   subtitle: string;
   children: ReactNode;
   footer: ReactNode;
 }
 
-const AuthCard = ({
+const AuthLayout = ({
   title,
   subtitle,
   children,
   footer,
-}: AuthCardPropsInterface) => {
+}: AuthLayoutPropsInterface) => {
   return (
     <main className="flex items-center justify-center min-h-screen bg-linear-to-br from-indigo-200 to-blue-100 p-3 sm:p-6 md:p-8">
       <section className="w-full max-w-md rounded-xl border border-zinc-200 p-5 shadow-lg bg-blue-50 md:p-8">
@@ -40,4 +40,4 @@ const AuthCard = ({
   );
 };
 
-export default AuthCard;
+export default AuthLayout;

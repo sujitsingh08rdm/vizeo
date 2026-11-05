@@ -1,7 +1,8 @@
 "use client";
 
 import { ChangeEvent, SyntheticEvent, useState } from "react";
-import AuthCard from "./AuthCard";
+import axios from "axios";
+import AuthLayout from "./AuthLayout";
 import Link from "next/link";
 import FormField from "../shared/FormField";
 import { FieldErrors, parseForm } from "@/lib/validations/parseForm";
@@ -10,6 +11,7 @@ import PasswordField from "../shared/PasswordField";
 import { loginSchema } from "@/lib/validations/auth";
 import httpRequest from "@/lib/http-request/axios-http-request";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/auth-context";
 
 const FIELDS = [
   {
@@ -25,7 +27,7 @@ const Login = () => {
   const [errors, setErrors] = useState<FieldErrors>({});
   const [loading, setLoading] = useState(false);
   const [serverError, setServerError] = useState("");
-
+  const { login } = useAuth();
   const router = useRouter();
 
   const handleSubmit = async (e: ChangeEvent<HTMLFormElement>) => {
@@ -43,14 +45,16 @@ const Login = () => {
       setErrors({});
 
       await httpRequest.post("/auth/login", data);
-
+      await login();
       setLoading(false);
+
       router.replace("/app");
-    } catch (error: any) {
-      const message =
-        error?.response?.data?.message ||
-        error?.message ||
-        "Something went wrong. Please try again.";
+    } catch (error: unknown) {
+      const message = axios.isAxiosError<{ message?: string }>(error)
+        ? error.response?.data?.message || error.message
+        : error instanceof Error
+          ? error.message
+          : "Something went wrong. Please try again.";
 
       setServerError(message);
     } finally {
@@ -68,7 +72,7 @@ const Login = () => {
   };
 
   return (
-    <AuthCard
+    <AuthLayout
       title="Login"
       subtitle="Welcome, Login to upload & manage your videos effortlessly."
       footer={
@@ -112,7 +116,7 @@ const Login = () => {
           {loading ? "Logging In..." : "Login"}
         </Button>
       </form>
-    </AuthCard>
+    </AuthLayout>
   );
 };
 
