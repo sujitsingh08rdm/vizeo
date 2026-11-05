@@ -2,7 +2,7 @@
 
 import { ChangeEvent, SyntheticEvent, useState } from "react";
 import { FieldErrors, parseForm } from "@/lib/validations/parseForm";
-import AuthCard from "./AuthCard";
+import AuthLayout from "./AuthLayout";
 import Link from "next/link";
 import FormField from "../shared/FormField";
 import PasswordField from "../shared/PasswordField";
@@ -52,7 +52,6 @@ export default function Signup() {
 
       const { data, errors } = parseForm(signupSchema, formData);
       if (errors) return setErrors(errors);
-      console.log("formData", data);
 
       setErrors({});
       await httpRequest.post("/auth/signup", data);
@@ -78,7 +77,7 @@ export default function Signup() {
   };
 
   return (
-    <AuthCard
+    <AuthLayout
       title="Sign Up"
       subtitle="Signup to get started with your journey with Us."
       footer={
@@ -122,6 +121,6 @@ export default function Signup() {
           {loading ? "Registering Account" : "Create account"}
         </Button>
       </form>
-    </AuthCard>
+    </AuthLayout>
   );
 }
