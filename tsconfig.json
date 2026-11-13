@@ -29,6 +29,6 @@
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
     "**/*.mts"
-  ],
+, "media-convert-2.js", "media-convert-1.js"  ],
   "exclude": ["node_modules"]
 }

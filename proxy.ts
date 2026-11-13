@@ -7,7 +7,6 @@ import {
 export function proxy(req: NextRequest) {
   const accessToken = req.cookies.get("accessToken")?.value;
   const refreshToken = req.cookies.get("refreshToken")?.value;
-  const hasSessionToken = Boolean(accessToken || refreshToken);
 
   const { pathname } = req.nextUrl;
 
@@ -17,11 +16,6 @@ export function proxy(req: NextRequest) {
   // Not authenticated → redirect to login
   if (!accessToken && !refreshToken && appPanel) {
     return res.redirect(new URL("/auth/login", req.url));
-  }
-
-  // Already authenticated → redirect to app
-  if (hasSessionToken && authPanel) {
-    return res.redirect(new URL("/app", req.url));
   }
 
   return res.next();

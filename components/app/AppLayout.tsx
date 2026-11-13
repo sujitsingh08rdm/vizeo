@@ -65,7 +65,6 @@ const AppLayout = ({ children }: ChildrenInterface) => {
 
   // use auth
   const { user, logout, isAuthenticated, isLoading } = useAuth();
-  console.log(user);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) router.replace("/auth/login");

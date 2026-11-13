@@ -1,33 +1,29 @@
+"use client";
+
 import Image from "next/image";
 import Divider from "../shared/Divider";
 import { Copy } from "lucide-react";
 import StatusBadge, { VideoStatus } from "../shared/StatusBadge";
 import Link from "next/link";
+import Fetcher from "@/lib/fetcher/swr-fetcher";
+import useSWR from "swr";
+import moment from "moment";
 
 interface Video {
-  id: string;
+  _id: string;
   title: string;
   description: string;
-  uploadedAt: string;
+  createdAt: string;
   status: VideoStatus;
 }
 
 const AVAILABLE_QUALITY = ["360p", "480p", "720p", "1080p"];
 
-// Replace with real data
-const VIDEOS: Video[] = Array.from({ length: 8 }, (_, i) => ({
-  id: String(i + 1),
-  title: `Title ${i + 1}`,
-  description: "This is sample description",
-  uploadedAt: "24 July, 2026",
-  status: "draft",
-}));
-
 /* One row in the video list: thumbnail beside the text, so the list stays compact */
 const VideoListItem = ({ video }: { video: Video }) => (
   <li>
     <Link
-      href={`/app/videos/${video.id}`}
+      href={`/app/videos/${video._id}`}
       className="flex gap-3 rounded-lg p-2 hover:bg-gray-50"
     >
       <div className="relative aspect-video w-32 shrink-0 overflow-hidden rounded bg-gray-200 sm:w-44 md:w-32 lg:w-40">
@@ -44,23 +40,36 @@ const VideoListItem = ({ video }: { video: Video }) => (
           {video.title}
         </h3>
         <p className="mt-1 text-xs text-gray-600 sm:text-sm">
-          {video.uploadedAt}
+          {moment(video.createdAt).format("hh:mm, DD MMM, YY")}
         </p>
-        <StatusBadge status={video.status} className="mt-2" />
+        <StatusBadge status={video.status} tone="neutral" className="mt-2" />
       </div>
     </Link>
   </li>
 );
 
 const Videos = () => {
-  const current = VIDEOS[0];
+  const { data, isLoading, error } = useSWR("/video", Fetcher);
+
+  if (isLoading) {
+    return <div>Fetching...</div>;
+  }
+
+  if (error) {
+    return <div>Something went wrong while Fetching Videos{error}</div>;
+  }
+  const current = data.videos[0];
+  console.log(data);
+  if (data.videos.length === 0) {
+    return <div>No Videos Uploaded.. Please Upload</div>;
+  }
 
   return (
     <div className="h-full">
       <h1 className="font-extrabold text-3xl">My Videos</h1>
       <Divider className="-mx-6" />
 
-      <div className="flex flex-col gap-4 md:grid md:grid-cols-12 md:items-start md:gap-6">
+      <div className="mt-8 flex flex-col gap-4 md:grid md:grid-cols-12 md:items-start md:gap-6">
         {/* ---------------- player + details ---------------- */}
         <div className="contents md:sticky md:top-0 md:col-span-8 md:flex md:flex-col md:gap-4">
           {/* sticky on phones only. -mx-4 matches the layout's p-4 on <md so the
@@ -121,8 +130,8 @@ const Videos = () => {
         <aside className="md:col-span-4">
           <h2 className="mb-3 text-lg font-semibold">Video list</h2>
           <ul className="space-y-1">
-            {VIDEOS.map((v) => (
-              <VideoListItem key={v.id} video={v} />
+            {data.videos.map((v: Video) => (
+              <VideoListItem key={v._id} video={v} />
             ))}
           </ul>
         </aside>
