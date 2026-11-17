@@ -4,7 +4,7 @@ import Card from "../shared/Card";
 import Divider from "../shared/Divider";
 import StatusBadge from "../shared/StatusBadge";
 import Button from "../shared/Button";
-import { ChangeEvent, SyntheticEvent, useState } from "react";
+import { ChangeEvent, SyntheticEvent, useEffect, useState } from "react";
 import { getVideoDuration, sizeCalculator } from "@/lib/utils";
 import { X } from "lucide-react";
 import { catchError } from "@/lib/catch-error";
@@ -16,8 +16,16 @@ import { FieldErrors, parseForm } from "@/lib/validations/parseForm";
 import { videoSchema } from "@/lib/validations/video";
 import { validateFile } from "@/lib/validations/file";
 import { cn } from "@/lib/utils";
+import Fetcher from "@/lib/fetcher/swr-fetcher";
+import useSWR, { mutate } from "swr";
+import moment from "moment";
+import { webSocket } from "../MainLayout";
 
 const Upload = () => {
+  const { data: recentUploads, isLoading: isRecentLoading } = useSWR(
+    "/video?page=1&limit=3",
+    Fetcher,
+  );
   const [file, setFile] = useState<File | null>(null);
   const [progress, setProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
@@ -96,6 +104,7 @@ const Upload = () => {
       toast.success("File Uploaded S3 successfull");
       form.reset();
       setFile(null);
+      mutate("/video?page=1&limit=3");
     } catch (error) {
       catchError(error);
     } finally {
@@ -111,6 +120,18 @@ const Upload = () => {
     }
   };
 
+  const onVideoConverting = () => {
+    mutate("/video?page=1&limit=3");
+  };
+
+  useEffect(() => {
+    webSocket.on("video-converting", onVideoConverting);
+
+    return () => {
+      webSocket.off("video-converting", onVideoConverting);
+    };
+  }, []);
+
   return (
     <div className="h-full">
       <h1 className="font-extrabold text-3xl">Uploads</h1>
@@ -119,35 +140,73 @@ const Upload = () => {
       <div className="flex mt-4 flex-col gap-4 md:grid md:grid-cols-12 md:items-start md:gap-6">
         <div className="mt-8 md:col-span-6 lg:col-span-7 hidden md:flex md:flex-col md:gap-12">
           {/* Recent 3 uploads */}
+          {/* <div className="space-y-4 hidden md:block">
+            <div className="font-semibold text-md m-2">Recent Uploads</div>
+            <Card className="flex flex-col">
+              <div className="space-x-2">
+                <label className="text-xl font-bold">demo.mp4</label>
+                <label className="text-sm font-base">311MB</label>
+              </div>
+              <div>
+                <StatusBadge status="converting" />
+              </div>
+            </Card>
+            <Card className="flex flex-col">
+              <div className="space-x-2">
+                <label className="text-xl font-bold">demo.mp4</label>
+                <label className="text-sm font-base">311MB</label>
+              </div>
+              <div>
+                <StatusBadge status="converting" />
+              </div>
+            </Card>
+            <Card className="flex flex-col">
+              <div className="space-x-2">
+                <label className="text-xl font-bold">demo.mp4</label>
+                <label className="text-sm font-base">311MB</label>
+              </div>
+              <div>
+                <StatusBadge status="converting" />
+              </div>
+            </Card>
+          </div> */}
+          {/* Recent 3 uploads */}
           <div className="space-y-4 hidden md:block">
-            <div className="font-semibold text-md m-2">Top 3 Uploads</div>
-            <Card className="flex flex-col">
-              <div className="space-x-2">
-                <label className="text-xl font-bold">demo.mp4</label>
-                <label className="text-sm font-base">311MB</label>
-              </div>
-              <div>
-                <StatusBadge status="converting" />
-              </div>
-            </Card>
-            <Card className="flex flex-col">
-              <div className="space-x-2">
-                <label className="text-xl font-bold">demo.mp4</label>
-                <label className="text-sm font-base">311MB</label>
-              </div>
-              <div>
-                <StatusBadge status="converting" />
-              </div>
-            </Card>
-            <Card className="flex flex-col">
-              <div className="space-x-2">
-                <label className="text-xl font-bold">demo.mp4</label>
-                <label className="text-sm font-base">311MB</label>
-              </div>
-              <div>
-                <StatusBadge status="converting" />
-              </div>
-            </Card>
+            <div className="font-semibold text-md m-2">Recent Uploads</div>
+
+            {isRecentLoading ? (
+              <p className="text-sm text-gray-500">
+                Fetching recent uploads...
+              </p>
+            ) : recentUploads?.videos?.length > 0 ? (
+              recentUploads.videos.map((video: any) => (
+                <Card key={video._id} className="flex flex-col gap-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex flex-col">
+                      <label className="text-base font-bold truncate">
+                        {video.title}
+                      </label>
+                      <label className="mt-1 text-gray-600 font-medium text-xs truncate">
+                        {video.description}
+                      </label>
+                    </div>
+                    <label className="text-sm font-base shrink-0">
+                      {sizeCalculator(video.size)}
+                    </label>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <StatusBadge status={video.status} />
+
+                    <span className="text-xs text-gray-500">
+                      {moment(video.createdAt).fromNow()}
+                    </span>
+                  </div>
+                </Card>
+              ))
+            ) : (
+              <p className="text-sm text-gray-500">No recent uploads found.</p>
+            )}
           </div>
         </div>
         {/* Upload with fields and bar form */}
