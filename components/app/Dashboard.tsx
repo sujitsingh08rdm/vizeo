@@ -28,12 +28,12 @@ const Dashboard = () => {
               <label className="text-base font-semi text-gray-700">
                 Holiday
               </label>
-              <StatusBadge status="ready" />
+              <StatusBadge status="published" />
             </div>
 
             <div className="space-x-2">
               <label className="text-base font-semi text-gray-700">Demo</label>
-              <StatusBadge status="processing" />
+              <StatusBadge status="converting" />
             </div>
           </Card>
           <Card title="Top 3 Shares">
